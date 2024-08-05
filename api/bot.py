@@ -1,21 +1,16 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
-from flask import Flask, request
 import os
-import logging
 
 TOKEN = os.getenv('TELEGRAM_TOKEN')
+
+# Define image URLs for each page
 IMAGES = {
     'page_1': 'https://images.pexels.com/photos/1547813/pexels-photo-1547813.jpeg',
     'page_2': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Altja_j%C3%B5gi_Lahemaal.jpg/286px-Altja_j%C3%B5gi_Lahemaal.jpg',
     'page_3': 'https://assets.weforum.org/article/image/responsive_big_webp_0ZUBmNNVLRCfn3NdU55nQ00UF64m2ObtcDS0grx02fA.webp',
     'page_4': 'https://i.natgeofe.com/n/726708f7-f79d-47a5-ba03-711449823607/01-balance-of-nature.jpg?w=1280&h=853'
 }
-
-app = Flask(__name__)
-
-updater = Updater(TOKEN)
-dispatcher = updater.dispatcher
 
 def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
@@ -28,13 +23,10 @@ def start(update: Update, context: CallbackContext) -> None:
             InlineKeyboardButton("Page 4", callback_data='page_4'),
         ],
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Send a welcome message with the start button
-    update.message.reply_text(
-        'Welcome! Click the button below to start.',
-        reply_markup=reply_markup
-    )
+    update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
 def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
@@ -54,15 +46,15 @@ def button(update: Update, context: CallbackContext) -> None:
     context.bot.send_photo(chat_id=query.message.chat_id, photo=IMAGES[query.data])
     query.edit_message_text(text=page_content[query.data], reply_markup=reply_markup, parse_mode='Markdown')
 
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CallbackQueryHandler(button))
+def main() -> None:
+    updater = Updater(TOKEN)
+    dispatcher = updater.dispatcher
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    json_str = request.get_data(as_text=True)
-    update = Update.de_json(json_str, updater.bot)
-    dispatcher.process_update(update)
-    return 'ok'
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CallbackQueryHandler(button))
+
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
-    app.run()
+    main()
