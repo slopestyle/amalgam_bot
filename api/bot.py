@@ -3,10 +3,9 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Callback
 from flask import Flask, request
 import os
 
-TOKEN = os.getenv('TELEGRAM_TOKEN')
-
+# Initialize Flask app and Telegram updater
 app = Flask(__name__)
-
+TOKEN = os.getenv('TELEGRAM_TOKEN')
 updater = Updater(TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
@@ -48,9 +47,10 @@ def webhook():
     dispatcher.process_update(update)
     return 'ok'
 
-# Vercel expects to find the app object as the entry point
+# Handler function for Vercel
 def handler(request):
-    return app(request)
+    with app.request_context(request):
+        return app.full_dispatch_request()
 
 if __name__ == '__main__':
     app.run()
